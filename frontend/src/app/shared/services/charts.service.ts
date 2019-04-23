@@ -67,31 +67,23 @@ export class ChartsService {
                   .catch(this.handleError);
   }
 
-  /* TODO, use backend search API endpoint */
-  searchCharts(query, repo?: string): Observable<Chart[]> {
-    let re = new RegExp(query, 'i');
-    return this.getCharts(repo).map(charts => {
-      return charts.filter(chart => {
-        return this.checkDefinedMatch(chart.attributes.name, re) ||
-         this.checkDefinedMatch(chart.attributes.description, re) ||
-         this.checkDefinedMatch(chart.attributes.repo.name, re) ||
-         this.arrayMatch(chart.attributes.keywords, re) ||
-         this.arrayMatch((chart.attributes.maintainers || []).map((m)=> { return m.name }), re) ||
-         this.arrayMatch(chart.attributes.sources, re)
-      })
-    })
-  }
-
-  checkDefinedMatch(member, matcher) {
-    return member && member.match(matcher);
-  }
-
-  arrayMatch(keywords: string[], re): boolean {
-    if(!keywords) return false
-
-    return keywords.some((keyword) => {
-      return this.checkDefinedMatch(keyword, re)
-    })
+  /**
+   * Search for a chart using the API
+   *
+   * @param {string} repo Respository name
+   * @param {string} query Search query
+   * @return {Observable} An observable that will be an array of charts instances
+   */
+  searchCharts(query: string, repo?: string): Observable<Chart[]> {
+    let url: string
+    if (repo) {
+      url = `${this.hostname}/v1/charts/search/${query}`
+    } else {
+      url = `${this.hostname}/v1/charts/${repo}/search/${query}`
+    }
+    return this.http.get(url)
+      .map(this.extractData)
+      .catch(this.handleError);
   }
 
   /**
@@ -154,7 +146,6 @@ export class ChartsService {
     this.cacheCharts[repo] = data;
     return data;
   }
-
 
   private extractData(res: Response) {
     let body = res.json();
